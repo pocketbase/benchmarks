@@ -1,0 +1,19 @@
+/.vscode/
+.idea
+.DS_Store
+
+# plaintask todo files
+*.todo
+
+# generated markdown previews
+*.html
+
+# ignore generated pb_data
+pb_data/
+
+# binaries, deployment tools and configs
+app
+hop
+hop.yml
+fly
+fly.toml
