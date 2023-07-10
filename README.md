@@ -28,7 +28,7 @@ without extra performance tuning or deployment on expensive server.
     - [Pure Go results (default)](results/fly_free_tier.md)
     _(it requires swap to be configured to prevent OOM errors and restarts; fails the heavier `posts100k` tests most likely a result of some resources abuse protection)_
 
-_Keep in mind that the tests are performed on the same machine where the PocketBase instance is deployed so the app performance can be slightly affected by the benchmarks execution itself (most hosts providers have several protections in place and at the moment I don't have the time to create proper setup to run the tests from more than one IP._
+_Keep in mind that the tests are performed on the same machine where the PocketBase instance is deployed so the app performance can be slightly affected by the benchmarks execution itself (most hosts providers have several protections in place and at the moment I don't have the time to create proper setup to run the tests from more than one IP)._
 
 _There are several optimizations that can be done and the benchmarks will change in the future so that the tests can run as part of the development workflow to track regressions, but for now improving the overall PocketBase dev experience remains with higher priority._
 
