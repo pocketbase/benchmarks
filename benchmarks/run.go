@@ -56,7 +56,7 @@ func MustRegister(app core.App) {
 			}
 			app.Cache().Set(benchmarkStartedKey, true)
 
-			toRunRaw := c.QueryParamDefault("run", "create,search,custom,delete")
+			toRunRaw := c.QueryParamDefault("run", "create,auth,search,custom,delete")
 
 			toRun := strings.Split(toRunRaw, ",")
 
@@ -75,6 +75,7 @@ func MustRegister(app core.App) {
 						runResult := buff.String()
 						collection, _ := app.Dao().FindCollectionByNameOrId(colBenchmarks)
 						record := models.NewRecord(collection)
+						record.Set("tests", toRunRaw)
 						record.Set("result", runResult)
 						if runErr != nil {
 							record.Set("error", runErr.Error())
@@ -157,7 +158,24 @@ func (r *runner) run(testNames []string) error {
 
 			return nil
 		},
-		"search": r.searchRecords,
+		"auth": func() error {
+			if err := r.authWithPassword(); err != nil {
+				return err
+			}
+
+			if err := r.authRefresh(); err != nil {
+				return err
+			}
+
+			return nil
+		},
+		"search": func() error {
+			if err := r.listRecords(); err != nil {
+				return err
+			}
+
+			return nil
+		},
 		"custom": func() error {
 			if err := r.customRoute(); err != nil {
 				return err
@@ -169,7 +187,13 @@ func (r *runner) run(testNames []string) error {
 
 			return nil
 		},
-		"delete": r.deleteRecords,
+		"delete": func() error {
+			if err := r.deleteRecords(); err != nil {
+				return err
+			}
+
+			return nil
+		},
 	}
 
 	// run tests

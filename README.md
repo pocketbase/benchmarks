@@ -35,24 +35,20 @@ _There are several optimizations that can be done and the benchmarks will change
 
 #### Takeaways and things we'll have to improve
 
-- The Go and JS (_will be available with v0.17.0+_) custom routes and app hooks perform almost the same for low and medium concurrency (this is because by default we have 100 prewarmed `goja.Runtime`).
+- The Go and JS (_will be available with v0.17.0+_) custom routes and app hooks perform almost the same for low and medium concurrency (with 100 prewarmed goja runtimes).
 
 - At the moment there is no much difference in terms of query execution between the lower and higher spec Hetzner VMs (_probably because most of the operations are I/O bound_).
-
-- We could experiment with different SQLite `PRAGMA` options to see if there will be any significant difference since we currently use mostly the defaults (_eg. increasing `page_size`, `cache_size`, heap limits, etc._).
 
 - The default data DB connections limit (max:120, idle:20) could be changed to be dynamic based on the running hardware to improve the overall performance and reduce the memory usage.
 
 - With higher concurrency individual query performance degrades (_probably because the runtime has to do more work, there is context switching involved, locks, etc._) but still the overall requests completion is better for most of the times.
 
-- Basic API rules don't have significant impact on the performance. The performance starts to degrade when the rule condition requires a join with a large table (especially in case of a nested relation fields lookup). Joins over large datasets are slow even for simple queries like:
+- Basic API rules don't have significant impact on the performance.
 
-    ```sql
-    SELECT COUNT(DISTINCT posts10k.rowid)
-    FROM posts10k
-    LEFT JOIN posts100k ON posts100k.author = posts10k.author
-    ```
-    Creating indexes for the relation fields can help speeding up the queries but further optimization techniques will have to be researched.
+- Aggregations (`COUNT`, `GROUP BY`, etc.) over large datasets are slow (especially when there are `JOINS`).
+    If your list/search request doesn't need the `totalPages` and `totalItems` fields, you can set the `?skipTotal=1` query parameter to skip the extra `COUNT` query
+    executed by default with the request (for first page results this could drastically drop the query execution from ~3.5s to ~9ms).
+    Creating appropriate indexes can also help speeding up the execution.
 
 - To prevent unnecessary `JOIN` statements we can implement internally a special condition that will treat single `relation` field statements like `rel.id = @request.auth.id` the same as `rel = @request.auth.id`.
 
@@ -74,7 +70,9 @@ In order to emulate real usage scenarios as close as possible, the tests are gro
 
 - **create** - Tests the write (_insert_) HTTP API performance. It is also responsible for populating the test database.
 
-- **search** - Tests the list/search (aka. `getList()`) HTTP API performance.
+- **auth** - Tests various auth related HTTP APIs (auth with password, token refresh, etc.).
+
+- **fetch** - Tests the read HTTP API performance (listing records, generating new tokens, etc.).
     It also contains scenarios with mixed list and update tests to observe how mixed read/write operations affects each other.
 
 - **custom** - Tests for custom Go and JS code (routes, middlewares, hooks, etc.).

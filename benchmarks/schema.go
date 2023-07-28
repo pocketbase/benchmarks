@@ -422,6 +422,18 @@ const schema = `
         "system": false,
         "schema": [
             {
+                "id": "dfbuw9mn",
+                "name": "tests",
+                "type": "text",
+                "system": false,
+                "required": false,
+                "options": {
+                    "min": null,
+                    "max": null,
+                    "pattern": ""
+                }
+            },
+            {
                 "id": "cbnu7mwn",
                 "name": "result",
                 "type": "text",

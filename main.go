@@ -3,6 +3,7 @@ package main
 import (
 	"app/benchmarks"
 	"log"
+	"time"
 
 	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/pocketbase"
@@ -27,6 +28,11 @@ func main() {
 	})
 
 	benchmarks.MustRegister(app)
+
+	app.OnAfterBootstrap().Add(func(e *core.BootstrapEvent) error {
+		app.Dao().ModelQueryTimeout = 90 * time.Second
+		return nil
+	})
 
 	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
 		e.Router.GET("/go", func(c echo.Context) error {
