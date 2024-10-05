@@ -1,23 +1,23 @@
 /// <reference path="../pb_data/types.d.ts" />
 
-function customMiddleware(next) {
-    return (c) => {
-        c.set("total", 20)
+function customMiddleware(e) {
+    e.set("total", 20)
 
-        return next(c)
-    }
+    return e.next()
 }
 
-routerAdd("GET", "/js", (c) => {
-    const total = c.get("total")
+routerAdd("GET", "/js", (e) => {
+    const total = e.get("total")
 
-    const records = $app.dao().findRecordsByFilter("posts10k", "title != ''", "-created", total)
+    const records = $app.findRecordsByFilter("posts10k", "title != ''", "-created", total)
 
-    return c.json(200, records)
-}, $apis.activityLogger($app), customMiddleware)
+    return e.json(200, records)
+}, customMiddleware)
 
-onRecordBeforeUpdateRequest((e) => {
+onRecordUpdateRequest((e) => {
     if (e.record.get("title") != "") {
         e.record.set("title", "js_update")
     }
+
+    return e.next()
 }, "js")

@@ -12,10 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/labstack/echo/v5"
 	"github.com/pocketbase/pocketbase/core"
-	"github.com/pocketbase/pocketbase/models"
-	"github.com/pocketbase/pocketbase/tokens"
 	"github.com/pocketbase/pocketbase/tools/routine"
 )
 
@@ -33,30 +30,39 @@ const (
 )
 
 func MustRegister(app core.App) {
-	app.OnBeforeServe().Add(func(e *core.ServeEvent) error {
-		e.Server.WriteTimeout = 0
+	app.OnServe().BindFunc(func(se *core.ServeEvent) error {
+		se.Server.WriteTimeout = 0
 
 		// disable the logs to reduce the load and the required file descriptors
 		app.Settings().Logs.MaxDays = 0
 
-		// create a dummy admin if there is none
-		if total, _ := app.Dao().TotalAdmins(); total == 0 {
-			admin := &models.Admin{}
-			admin.Email = "test@example.com"
-			admin.SetPassword("1234567890")
-			if err := app.Dao().SaveAdmin(admin); err != nil {
+		// create a dummy superuser if there is none
+		if total, _ := app.CountRecords(core.CollectionNameSuperusers); total == 0 {
+			superusersCol, err := app.FindCollectionByNameOrId(core.CollectionNameSuperusers)
+			if err != nil {
+				return err
+			}
+
+			superuser := core.NewRecord(superusersCol)
+			superuser.Set("email", "test@example.com")
+			superuser.Set("password", "1234567890")
+			err = app.Save(superuser)
+			if err != nil {
 				return err
 			}
 		}
 
 		// register the `GET /benchmarks` route
-		e.Router.GET("/benchmarks", func(c echo.Context) error {
-			if app.Cache().Has(benchmarkStartedKey) {
-				return c.String(http.StatusOK, "Another benchmark is already running, please check later...")
+		se.Router.GET("/benchmarks", func(e *core.RequestEvent) error {
+			if e.App.Store().Has(benchmarkStartedKey) {
+				return e.String(http.StatusOK, "Another benchmark is already running, please check later...")
 			}
-			app.Cache().Set(benchmarkStartedKey, true)
+			e.App.Store().Set(benchmarkStartedKey, true)
 
-			toRunRaw := c.QueryParamDefault("run", "create,auth,search,custom,delete")
+			toRunRaw := e.Request.URL.Query().Get("run")
+			if toRunRaw == "" {
+				toRunRaw = "create,auth,search,custom,delete"
+			}
 
 			toRun := strings.Split(toRunRaw, ",")
 
@@ -64,23 +70,28 @@ func MustRegister(app core.App) {
 
 			r := runner{
 				app:     app,
-				baseUrl: "http://" + e.Server.Addr,
+				baseUrl: "http://" + se.Server.Addr,
 				writers: map[io.Writer]AfterRunFunc{
 					// output the result in the console
 					os.Stdout: nil,
 					// output the result in a collection
 					// (in case the console is not accessible or the deployment env doesn't allow persisting connections)
 					buff: func(runErr error) {
+						collection, err := e.App.FindCollectionByNameOrId(colBenchmarks)
+						if err != nil {
+							log.Printf("Missing benchmarks collection probably due to failed schema import - %v (%v)\n", err, runErr)
+							return
+						}
+
 						// write the result into the benchmark collection
 						runResult := buff.String()
-						collection, _ := app.Dao().FindCollectionByNameOrId(colBenchmarks)
-						record := models.NewRecord(collection)
+						record := core.NewRecord(collection)
 						record.Set("tests", toRunRaw)
 						record.Set("result", runResult)
 						if runErr != nil {
 							record.Set("error", runErr.Error())
 						}
-						if err := app.Dao().SaveRecord(record); err != nil {
+						if err := e.App.Save(record); err != nil {
 							log.Println("Failed to save benchmark record: ", err)
 						}
 					},
@@ -95,13 +106,13 @@ func MustRegister(app core.App) {
 					log.Println("Run error: ", err)
 				}
 
-				app.Cache().Remove(benchmarkStartedKey)
+				app.Store().Remove(benchmarkStartedKey)
 			})
 
-			return c.String(http.StatusOK, "Benchmarks started - you can check the results later in the console or in the "+colBenchmarks+" collection.")
+			return e.String(http.StatusOK, "Benchmarks started - you can check the results later in the console or in the "+colBenchmarks+" collection.")
 		})
 
-		return nil
+		return se.Next()
 	})
 }
 
@@ -114,8 +125,8 @@ type AfterRunFunc func(runErr error)
 
 type runner struct {
 	app     core.App
-	baseUrl string
 	writers map[io.Writer]AfterRunFunc
+	baseUrl string
 }
 
 // write writes the provided string to the runner writers.
@@ -137,59 +148,59 @@ func (r *runner) run(testNames []string) error {
 	tests := map[string]func() error{
 		"create": func() error {
 			if err := r.resetSchema(true); err != nil {
-				return err
+				return fmt.Errorf("resetSchema: %w", err)
 			}
 
 			if err := r.createOrganizations(); err != nil {
-				return err
+				return fmt.Errorf("createOrganizations: %w", err)
 			}
 
 			if err := r.createPermissions(); err != nil {
-				return err
+				return fmt.Errorf("createPermissions: %w", err)
 			}
 
 			if err := r.createUsers(); err != nil {
-				return err
+				return fmt.Errorf("createUsers: %w", err)
 			}
 
 			if err := r.createPosts(); err != nil {
-				return err
+				return fmt.Errorf("createPosts: %w", err)
 			}
 
 			return nil
 		},
 		"auth": func() error {
 			if err := r.authWithPassword(); err != nil {
-				return err
+				return fmt.Errorf("authWithPassword: %w", err)
 			}
 
 			if err := r.authRefresh(); err != nil {
-				return err
+				return fmt.Errorf("authRefresh: %w", err)
 			}
 
 			return nil
 		},
 		"search": func() error {
 			if err := r.listRecords(); err != nil {
-				return err
+				return fmt.Errorf("listRecords: %w", err)
 			}
 
 			return nil
 		},
 		"custom": func() error {
 			if err := r.customRoute(); err != nil {
-				return err
+				return fmt.Errorf("customRoute: %w", err)
 			}
 
 			if err := r.customHook(); err != nil {
-				return err
+				return fmt.Errorf("customHook: %w", err)
 			}
 
 			return nil
 		},
 		"delete": func() error {
 			if err := r.deleteRecords(); err != nil {
-				return err
+				return fmt.Errorf("deleteRecords: %w", err)
 			}
 
 			return nil
@@ -222,7 +233,7 @@ func (r *runner) run(testNames []string) error {
 		}
 	}
 
-	return nil
+	return runErr
 }
 
 func (r *runner) cooldown() {
@@ -230,7 +241,7 @@ func (r *runner) cooldown() {
 }
 
 func (r *runner) updateCollection(collectionIdOrName string, data map[string]any) error {
-	collection, err := r.app.Dao().FindCollectionByNameOrId(collectionIdOrName)
+	collection, err := r.app.FindCollectionByNameOrId(collectionIdOrName)
 	if err != nil {
 		return err
 	}
@@ -244,33 +255,18 @@ func (r *runner) updateCollection(collectionIdOrName string, data map[string]any
 		return err
 	}
 
-	return r.app.Dao().SaveCollection(collection)
-}
-
-func (r *runner) totalRecords(collectionIdOrName string) (int, error) {
-	collection, err := r.app.Dao().FindCollectionByNameOrId(collectionIdOrName)
-	if err != nil {
-		return 0, err
-	}
-
-	var total int
-
-	if err := r.app.Dao().RecordQuery(collection).Select("count(id)").Row(&total); err != nil {
-		return 0, err
-	}
-
-	return total, nil
+	return r.app.Save(collection)
 }
 
 func (r *runner) randomRecordIds(collectionIdOrName string, count int) ([]string, error) {
-	collection, err := r.app.Dao().FindCollectionByNameOrId(collectionIdOrName)
+	collection, err := r.app.FindCollectionByNameOrId(collectionIdOrName)
 	if err != nil {
 		return nil, err
 	}
 
 	ids := make([]string, 0, count)
 
-	queryErr := r.app.Dao().RecordQuery(collection).
+	queryErr := r.app.RecordQuery(collection).
 		Select("id").
 		OrderBy("random()").
 		Limit(int64(count)).
@@ -282,31 +278,28 @@ func (r *runner) randomRecordIds(collectionIdOrName string, count int) ([]string
 	return ids, nil
 }
 
-func (r *runner) randomUserAuth() (*models.Record, string, error) {
-	collection, err := r.app.Dao().FindCollectionByNameOrId(colUsers)
+func (r *runner) randomUserAuth() (*core.Record, string, error) {
+	user := &core.Record{}
+
+	err := r.app.RecordQuery(colUsers).OrderBy("random()").Limit(1).One(user)
 	if err != nil {
 		return nil, "", err
 	}
 
-	user := &models.Record{}
-
-	if err := r.app.Dao().RecordQuery(collection).Limit(1).One(user); err != nil {
-		return nil, "", err
-	}
-
-	token, err := tokens.NewRecordAuthToken(r.app, user)
+	token, err := user.NewAuthToken()
 
 	return user, token, err
 }
 
-func (r *runner) randomAdmin() (*models.Admin, string, error) {
-	admin := &models.Admin{}
+func (r *runner) randomSuperuserAuth() (*core.Record, string, error) {
+	superuser := &core.Record{}
 
-	if err := r.app.Dao().AdminQuery().Limit(1).One(admin); err != nil {
+	err := r.app.RecordQuery(core.CollectionNameSuperusers).Limit(1).One(superuser)
+	if err != nil {
 		return nil, "", err
 	}
 
-	token, err := tokens.NewAdminAuthToken(r.app, admin)
+	token, err := superuser.NewAuthToken()
 
-	return admin, token, err
+	return superuser, token, err
 }

@@ -11,11 +11,11 @@ import (
 )
 
 type Request struct {
+	Body    io.Reader
+	Context context.Context
+	Headers map[string]string
 	Method  string
 	Url     string
-	Headers map[string]string
-	Body    io.Reader
-	Context context.Context // default to context.Background()
 }
 
 // If destBody is non-nil, it will read and unmarshal the request
@@ -49,7 +49,7 @@ func (c *Request) Send(destBody any) error {
 			Proxy:                 http.ProxyFromEnvironment,
 			DialContext:           dialer.DialContext,
 			MaxIdleConns:          0,
-			IdleConnTimeout:       90 * time.Second,
+			IdleConnTimeout:       120 * time.Second,
 			TLSHandshakeTimeout:   10 * time.Second,
 			ExpectContinueTimeout: 1 * time.Second,
 		},

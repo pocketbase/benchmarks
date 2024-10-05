@@ -8,7 +8,7 @@ import (
 func (r *runner) customRoute() error {
 	r.write("## Go vs JS route execution")
 
-	_, adminToken, err := r.randomAdmin()
+	_, superuserToken, err := r.randomSuperuserAuth()
 	if err != nil {
 		return err
 	}
@@ -41,7 +41,7 @@ func (r *runner) customRoute() error {
 				Url:    r.baseUrl + s.path,
 				Method: "GET",
 				Headers: map[string]string{
-					"Authorization": adminToken,
+					"Authorization": superuserToken,
 				},
 			}
 
@@ -62,7 +62,7 @@ func (r *runner) customRoute() error {
 func (r *runner) customHook() error {
 	r.write("## Go vs JS hooks execution")
 
-	_, adminToken, err := r.randomAdmin()
+	_, superuserToken, err := r.randomSuperuserAuth()
 	if err != nil {
 		return err
 	}
@@ -110,7 +110,7 @@ func (r *runner) customHook() error {
 				Method: "PATCH",
 				Body:   strings.NewReader(`{"title": "hook_update"}`),
 				Headers: map[string]string{
-					"Authorization": adminToken,
+					"Authorization": superuserToken,
 				},
 			}
 

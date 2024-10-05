@@ -13,7 +13,5 @@ pb_data/
 
 # binaries, deployment tools and configs
 app
-hop
-hop.yml
 fly
 fly.toml

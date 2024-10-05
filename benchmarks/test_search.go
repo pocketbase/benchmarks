@@ -24,7 +24,7 @@ func (r *runner) listRecords() error {
 		collection  string
 		query       string
 		rule        string
-		indexes     []string
+		indexes     []string // set it to emtpy []string{} to reset the indexes
 		extraFunc   func() error
 	}
 
@@ -42,10 +42,10 @@ func (r *runner) listRecords() error {
 	for _, col := range collections {
 		scenarios = append(
 			scenarios,
-			scenario{"simpleA (many requests, no rules, no concurrency)", 1000, 1, col, "?perPage=20", "", nil, nil},
-			scenario{"simpleB (many requests, no rules, high concurrency)", 1000, 1000, col, "?perPage=20", "", nil, nil},
-			scenario{"simpleC (many requests, no rules, high concurrency, skipTotal)", 1000, 1000, col, "?perPage=20&skipTotal=1", "", nil, nil},
-			scenario{"mixed read and write (simpleA list with additional 300 concurrent random " + col + " updates running in the background)", 1000, 1000, col, "?perPage=20", "", nil, func() error {
+			scenario{"simpleA (many requests, no rules, no concurrency)", 1000, 1, col, "?perPage=20", "", []string{}, nil},
+			scenario{"simpleB (many requests, no rules, high concurrency)", 1000, 1000, col, "?perPage=20", "", []string{}, nil},
+			scenario{"simpleC (many requests, no rules, high concurrency, skipTotal)", 1000, 1000, col, "?perPage=20&skipTotal=1", "", []string{}, nil},
+			scenario{"mixed read and write (simpleA list with additional 300 concurrent random " + col + " updates running in the background)", 1000, 1000, col, "?perPage=20", "", []string{}, func() error {
 				g := errgroup.Group{}
 				g.SetLimit(-1)
 
@@ -72,50 +72,57 @@ func (r *runner) listRecords() error {
 
 				return g.Wait()
 			}},
-			scenario{"expand author", 100, 10, col, "?perPage=20&expand=author", "", nil, nil},
-			scenario{"expand author (limited fields)", 100, 10, col, "?perPage=20&expand=author&fields=id,collectionId,expand.author.id", "", nil, nil},
-			scenario{"expand author.permissions", 100, 10, col, "?perPage=20&expand=author.permissions", "", nil, nil},
-			scenario{"expand author.permissions (limited fields)", 100, 10, col, "?perPage=20&expand=author.permissions&fields=id,collectionId,expand.author.id,expand.author.expand.permissions.id", "", nil, nil},
-			scenario{"simple auth rule", 100, 10, col, "?perPage=20", "@request.auth.id != ''", nil, nil},
-			scenario{"author check (no index)", 100, 10, col, "?perPage=20", "author = @request.auth.id", nil, nil},
+			scenario{"expand author", 100, 10, col, "?perPage=20&expand=author", "", []string{}, nil},
+			scenario{"expand author (limited fields)", 100, 10, col, "?perPage=20&expand=author&fields=id,collectionId,expand.author.id", "", []string{}, nil},
+			scenario{"expand author.permissions", 100, 10, col, "?perPage=20&expand=author.permissions", "", []string{}, nil},
+			scenario{"expand author.permissions (limited fields)", 100, 10, col, "?perPage=20&expand=author.permissions&fields=id,collectionId,expand.author.id,expand.author.expand.permissions.id", "", []string{}, nil},
+			scenario{"simple auth rule", 100, 10, col, "?perPage=20", "@request.auth.id != ''", []string{}, nil},
+			scenario{"author check (no index)", 100, 10, col, "?perPage=20", "author = @request.auth.id", []string{}, nil},
 			scenario{"author check (with index)", 100, 10, col, "?perPage=20", "author = @request.auth.id", []string{
-				"create index author_idx on " + col + " (author)",
+				"create index `idx_author_" + col + "` on " + col + " (author)",
 			}, nil},
 			scenario{"author check (with index and skipTotal)", 100, 10, col, "?perPage=20&skipTotal=1", "author = @request.auth.id", []string{
-				"create index author_idx on " + col + " (author)",
+				"create index `idx_author_" + col + "` on " + col + " (author)",
 			}, nil},
-			scenario{"author.id (extra join) check (no index)", 100, 10, col, "?perPage=20", "author.id = @request.auth.id", nil, nil},
+			scenario{"author.id (extra join) check (no index)", 100, 10, col, "?perPage=20", "author.id = @request.auth.id", []string{}, nil},
 			scenario{"author.id (extra join) check (with index)", 100, 10, col, "?perPage=20", "author.id = @request.auth.id", []string{
-				"create index author_idx on " + col + " (author)",
+				"create index `idx_author_" + col + "` on " + col + " (author)",
 			}, nil},
 			scenario{"author.id (extra join) check (with index and skipTotal)", 100, 10, col, "?perPage=20&skipTotal=1", "author.id = @request.auth.id", []string{
-				"create index author_idx on " + col + " (author)",
+				"create index `idx_author_" + col + "` on " + col + " (author)",
 			}, nil},
-			scenario{"loose large text search (no index)", 100, 10, col, "?perPage=20", "description ~ 'ipsum dolor'", nil, nil},
+			scenario{"loose large text search (no index)", 100, 10, col, "?perPage=20", "description ~ 'ipsum dolor'", []string{}, nil},
 			scenario{"loose large text search (with index)", 100, 10, col, "?perPage=20", "description ~ 'ipsum dolor'", []string{
-				"create index descriptions_idx on " + col + " (description)",
+				"create index `idx_descriptions_" + col + "` on " + col + " (description)",
 			}, nil},
 			scenario{"loose large text search (with index and skipTotal)", 100, 10, col, "?perPage=20&skipTotal=1", "description ~ 'ipsum dolor'", []string{
-				"create index descriptions_idx on " + col + " (description)",
+				"create index `idx_descriptions_" + col + "` on " + col + " (description)",
 			}, nil},
-			scenario{"multiple select :each (no index, match-all)", 100, 10, col, "?perPage=20", "type:each != 'c'", nil, nil},
-			scenario{"multiple select :each (no index, match-all, skipTotal)", 100, 10, col, "?perPage=20&skipTotal=1", "type:each != 'c'", nil, nil},
-			scenario{"multiple select :each (no index, at-least-one)", 100, 10, col, "?perPage=20", "type:each ?!= 'c'", nil, nil},
-			scenario{"multiple select :each (no index, at-least-one, skipTotal)", 100, 10, col, "?perPage=20&skipTotal=1", "type:each ?!= 'c'", nil, nil},
-			scenario{"nested single relations lookup (no indexes)", 100, 10, col, "?perPage=20", "author.organization.name != 'test'", nil, nil},
-			scenario{"nested single relations lookup (no indexes, skipTotal)", 100, 10, col, "?perPage=20&skipTotal=1", "author.organization.name != 'test'", nil, nil},
-			scenario{"nested multiple relations lookup (no indexes, match-all)", 100, 10, col, "?perPage=20", "author.permissions.active = true", nil, nil},
-			scenario{"nested multiple relations lookup (no indexes, match-all, skipTotal)", 100, 10, col, "?perPage=20&skipTotal=1", "author.permissions.active = true", nil, nil},
-			scenario{"nested multiple relations lookup (no indexes, at-least-one)", 100, 10, col, "?perPage=20", "author.permissions.active ?= true", nil, nil},
-			scenario{"nested multiple relations lookup (no indexes, at-least-one, skipTotal)", 100, 10, col, "?perPage=20&skipTotal=1", "author.permissions.active ?= true", nil, nil},
+			scenario{"multiple select :each (no index, match-all)", 100, 10, col, "?perPage=20", "type:each != 'c'", []string{}, nil},
+			scenario{"multiple select :each (no index, match-all, skipTotal)", 100, 10, col, "?perPage=20&skipTotal=1", "type:each != 'c'", []string{}, nil},
+			scenario{"multiple select :each (no index, at-least-one)", 100, 10, col, "?perPage=20", "type:each ?!= 'c'", []string{}, nil},
+			scenario{"multiple select :each (no index, at-least-one, skipTotal)", 100, 10, col, "?perPage=20&skipTotal=1", "type:each ?!= 'c'", []string{}, nil},
+			scenario{"nested single relations lookup (no indexes)", 100, 10, col, "?perPage=20", "author.organization.name != 'test'", []string{}, nil},
+			scenario{"nested single relations lookup (no indexes, skipTotal)", 100, 10, col, "?perPage=20&skipTotal=1", "author.organization.name != 'test'", []string{}, nil},
+			scenario{"nested multiple relations lookup (no indexes, match-all)", 100, 10, col, "?perPage=20", "author.permissions.active = true", []string{}, nil},
+			scenario{"nested multiple relations lookup (no indexes, match-all, skipTotal)", 100, 10, col, "?perPage=20&skipTotal=1", "author.permissions.active = true", []string{}, nil},
+			scenario{"nested multiple relations lookup (no indexes, at-least-one)", 100, 10, col, "?perPage=20", "author.permissions.active ?= true", []string{}, nil},
+			scenario{"nested multiple relations lookup (no indexes, at-least-one, skipTotal)", 100, 10, col, "?perPage=20&skipTotal=1", "author.permissions.active ?= true", []string{}, nil},
 		)
 	}
 
 	for _, s := range scenarios {
+		if err := r.resetSchema(false); err != nil {
+			return err
+		}
+
 		collectionData := map[string]any{
 			"listRule": s.rule,
-			"indexes":  s.indexes,
 		}
+		if s.indexes != nil {
+			collectionData["indexes"] = s.indexes
+		}
+
 		if err := r.updateCollection(s.collection, collectionData); err != nil {
 			return err
 		}

@@ -9,10 +9,10 @@ import (
 )
 
 type BenchResult struct {
+	Errors    []error
 	Best      time.Duration
 	Worst     time.Duration
 	Completed time.Duration
-	Errors    []error
 }
 
 func (r BenchResult) String() string {

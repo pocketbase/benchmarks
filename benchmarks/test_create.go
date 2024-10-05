@@ -4,12 +4,7 @@ import (
 	"math/rand"
 	"strconv"
 	"strings"
-	"time"
 )
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
 
 // pickRandom returns a random element from the provided list.
 func pickRandom(list []string) string {
@@ -29,7 +24,7 @@ func (r *runner) createOrganizations() error {
 		rule        string
 	}{
 		{50, 10, colOrganizations, ""},
-		{50, 10, colOrganizations, "@request.data.name != ''"},
+		{50, 10, colOrganizations, "@request.body.name != ''"},
 	}
 
 	for _, s := range scenarios {
@@ -40,7 +35,7 @@ func (r *runner) createOrganizations() error {
 			return err
 		}
 
-		total, err := r.totalRecords(s.collection)
+		total, err := r.app.CountRecords(s.collection)
 		if err != nil {
 			return err
 		}
@@ -57,7 +52,7 @@ func (r *runner) createOrganizations() error {
 		)
 
 		b, err := bench(func(i int) error {
-			name := s.collection + strconv.Itoa(i+total)
+			name := s.collection + strconv.Itoa(i+int(total))
 
 			req := Request{
 				Url:    r.baseUrl + "/api/collections/" + s.collection + "/records",
@@ -92,7 +87,7 @@ func (r *runner) createPermissions() error {
 		rule        string
 	}{
 		{25, 5, colPermissions, ""},
-		{25, 5, colPermissions, "@request.data.name != ''"},
+		{25, 5, colPermissions, "@request.body.name != ''"},
 	}
 
 	for _, s := range scenarios {
@@ -103,7 +98,7 @@ func (r *runner) createPermissions() error {
 			return err
 		}
 
-		total, err := r.totalRecords(s.collection)
+		total, err := r.app.CountRecords(s.collection)
 		if err != nil {
 			return err
 		}
@@ -120,7 +115,7 @@ func (r *runner) createPermissions() error {
 		)
 
 		b, err := bench(func(i int) error {
-			name := s.collection + strconv.Itoa(i+total)
+			name := s.collection + strconv.Itoa(i+int(total))
 
 			active := "false"
 			if i%2 == 0 {
@@ -170,7 +165,7 @@ func (r *runner) createUsers() error {
 		rule        string
 	}{
 		{250, 50, colUsers, ""},
-		{250, 50, colUsers, "@request.data.email != '' && @request.data.permissions:length > 0"},
+		{250, 50, colUsers, "@request.body.email != '' && @request.body.permissions:length > 0"},
 	}
 
 	for _, s := range scenarios {
@@ -181,7 +176,7 @@ func (r *runner) createUsers() error {
 			return err
 		}
 
-		total, err := r.totalRecords(s.collection)
+		total, err := r.app.CountRecords(s.collection)
 		if err != nil {
 			return err
 		}
@@ -198,7 +193,7 @@ func (r *runner) createUsers() error {
 		)
 
 		b, err := bench(func(i int) error {
-			name := s.collection + strconv.Itoa(i+total)
+			name := s.collection + strconv.Itoa(i+int(total))
 
 			req := Request{
 				Url:    r.baseUrl + "/api/collections/" + s.collection + "/records",
@@ -254,13 +249,13 @@ func (r *runner) createPosts() error {
 		token       string
 	}{
 		{5000, 500, colPosts10k, "", ""},
-		{5000, 500, colPosts10k, "@request.auth.id != '' && @request.data.public:isset = true", userToken},
+		{5000, 500, colPosts10k, "@request.auth.id != '' && @request.body.public:isset = true", userToken},
 		{12500, 500, colPosts25k, "", ""},
-		{12500, 500, colPosts25k, "@request.auth.id != '' && @request.data.public:isset = true", userToken},
+		{12500, 500, colPosts25k, "@request.auth.id != '' && @request.body.public:isset = true", userToken},
 		{25000, 500, colPosts50k, "", ""},
-		{25000, 500, colPosts50k, "@request.auth.id != '' && @request.data.public:isset = true", userToken},
+		{25000, 500, colPosts50k, "@request.auth.id != '' && @request.body.public:isset = true", userToken},
 		{50000, 500, colPosts100k, "", ""},
-		{50000, 500, colPosts100k, "@request.auth.id != '' && @request.data.public:isset = true", userToken},
+		{50000, 500, colPosts100k, "@request.auth.id != '' && @request.body.public:isset = true", userToken},
 	}
 
 	for _, s := range scenarios {
@@ -271,7 +266,7 @@ func (r *runner) createPosts() error {
 			return err
 		}
 
-		total, err := r.totalRecords(s.collection)
+		total, err := r.app.CountRecords(s.collection)
 		if err != nil {
 			return err
 		}
@@ -287,7 +282,7 @@ func (r *runner) createPosts() error {
 			s.rule,
 		)
 		b, err := bench(func(i int) error {
-			name := s.collection + strconv.Itoa(i+total)
+			name := s.collection + strconv.Itoa(i+int(total))
 
 			public := "true"
 			if i%2 == 0 {

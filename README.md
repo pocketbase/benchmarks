@@ -12,34 +12,30 @@ without extra performance tuning or deployment on expensive server.
 
 ## Results
 
-- **Hetzner CAX11 (2vCPU ARM64, 4GB RAM, €3.79)**
+- **Hetzner CAX11 (2vCPU ARM64, 4GB RAM, €3.95)**
     - [Pure Go results (default)](results/hetzner_cax11.md)
     - [CGO results](results/hetzner_cax11_cgo.md)
 
-- **Hetzner CAX41 (16vCPU ARM64, 32GB RAM, €24.49)**
+- **Hetzner CAX41 (16vCPU ARM64, 32GB RAM, €28.78)**
     - [Pure Go results (default)](results/hetzner_cax41.md)
     - [CGO results](results/hetzner_cax41_cgo.md)
-
-- **Hop.io (1vCPU, 512MB RAM, _free tier_)**
-    - [Pure Go results (default)](results/hop_free_tier.md)
-    _(fails the mixed `posts50k` tests most likely a result of some resources abuse protection)_
 
 - **Fly.io (1vCPU, 256MB RAM, _free tier_)**
     - [Pure Go results (default)](results/fly_free_tier.md)
     _(it requires swap to be configured to prevent OOM errors and restarts; fails the heavier `posts100k` tests most likely a result of some resources abuse protection)_
 
-_Keep in mind that the tests are performed on the same machine where the PocketBase instance is deployed so the app performance can be slightly affected by the benchmarks execution itself (most hosts providers have several protections in place and at the moment I don't have the time to create proper setup to run the tests from more than one IP)._
+_Keep in mind that the benchmark runs together with the PocketBase instance on a single VPS with shared vCPU so the app performance can be slightly affected by the tests execution itself._
 
 _There are several optimizations that can be done and the benchmarks will change in the future so that the tests can run as part of the development workflow to track regressions, but for now improving the overall PocketBase dev experience remains with higher priority._
 
 
 #### Takeaways and things we'll have to improve
 
-- The Go and JS (_will be available with v0.17.0+_) custom routes and app hooks perform almost the same for low and medium concurrency (with 100 prewarmed goja runtimes).
+- The Go and JS custom routes and app hooks perform almost the same for low and medium concurrency (with 50 prewarmed goja runtimes).
 
 - At the moment there is no much difference in terms of query execution between the lower and higher spec Hetzner VMs (_probably because most of the operations are I/O bound_).
 
-- The default data DB connections limit (max:120, idle:20) could be changed to be dynamic based on the running hardware to improve the overall performance and reduce the memory usage.
+- The default data DB connections limit (max:120, idle:15) could be changed to be dynamic based on the running hardware to improve the overall performance and reduce the memory usage.
 
 - With higher concurrency individual query performance degrades (_probably because the runtime has to do more work, there is context switching involved, locks, etc._) but still the overall requests completion is better for most of the times.
 
@@ -50,12 +46,13 @@ _There are several optimizations that can be done and the benchmarks will change
     executed by default with the request (for first page results this could drastically drop the query execution from ~3.5s to ~9ms).
     Creating appropriate indexes can also help speeding up the execution.
 
-- To prevent unnecessary `JOIN` statements we can implement internally a special condition that will treat single `relation` field statements like `rel.id = @request.auth.id` the same as `rel = @request.auth.id`.
+- ~To prevent unnecessary `JOIN` statements we can implement internally a special condition that will treat single `relation` field statements like `rel.id = @request.auth.id` the same as `rel = @request.auth.id`.~
+    _Done._
 
 - The existing json column normalizations (eg. `CASE WHEN json_valid ...`) have some impact on the performance (~10%) and can be further optimized by removing them entirely and ensuring that the field values are always stored in the correct format before create/update persistence (either on app level or triggers).
 
-- The CGO driver for some queries in _large datasets_ can be ~1.5x-4x times faster.
-  Building with `CGO_ENABLED=1` is the easiest way to boost the query performance without changing your db structure or hardware but keep in mind that it complicates the cross-compilation.
+- The CGO `mattn/go-sqlite3` driver for some `SELECT` queries in _large datasets_ can be ~1.5x-4x times faster.
+  _Building with a CGO driver is the easiest way to boost the query performance without changing your db structure or hardware but keep in mind that it complicates cross-compilation._
 
 
 ## About the benchmarks
@@ -84,7 +81,7 @@ In order to emulate real usage scenarios as close as possible, the tests are gro
 
 To run the benchmarks locally or on your server, you can:
 
-0. _[Install Go 1.18+](https://go.dev/doc/install) (if you haven't already)_
+0. _[Install Go 1.23+](https://go.dev/doc/install) (if you haven't already)_
 1. Clone/download the repo
 2. Run `GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build` (_https://go.dev/doc/install/source#environment_)
 3. Start the created executable by running `./app serve`.
