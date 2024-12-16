@@ -118,7 +118,7 @@ const schema = `
         "authRule": "",
         "manageRule": null,
         "authAlert": {
-            "enabled": true,
+            "enabled": false,
             "emailTemplate": {
                 "subject": "Login from a new location",
                 "body": "<p>Hello,</p>\n<p>We noticed a login to your {APP_NAME} account from a new location.</p>\n<p>If this was you, you may disregard this email.</p>\n<p><strong>If this wasn't you, you should immediately change your {APP_NAME} account password to revoke access from all other locations.</strong></p>\n<p>\n  Thanks,<br/>\n  {APP_NAME} team\n</p>"
@@ -331,7 +331,7 @@ const schema = `
         "authRule": "",
         "manageRule": null,
         "authAlert": {
-            "enabled": true,
+            "enabled": false,
             "emailTemplate": {
                 "subject": "Login from a new location",
                 "body": "<p>Hello,</p>\n<p>We noticed a login to your {APP_NAME} account from a new location.</p>\n<p>If this was you, you may disregard this email.</p>\n<p><strong>If this wasn't you, you should immediately change your {APP_NAME} account password to revoke access from all other locations.</strong></p>\n<p>\n  Thanks,<br/>\n  {APP_NAME} team\n</p>"
