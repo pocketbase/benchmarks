@@ -10,19 +10,15 @@ without extra performance tuning or deployment on expensive server.
 - [About the benchmarks](#about-the-benchmarks)
 
 
-## Results
+## Results highlight
 
-- **Hetzner CAX11 (2vCPU ARM64, 4GB RAM, €3.95)**
+- **Hetzner CAX11 (2vCPU ARM64, 4GB RAM, €4.55)**
     - [Pure Go results (default)](results/hetzner_cax11.md)
     - [CGO results](results/hetzner_cax11_cgo.md)
 
-- **Hetzner CAX41 (16vCPU ARM64, 32GB RAM, €28.78)**
-    - [Pure Go results (default)](results/hetzner_cax41.md)
-    - [CGO results](results/hetzner_cax41_cgo.md)
-
-- **Fly.io (1vCPU, 256MB RAM, _free tier_)**
-    - [Pure Go results (default)](results/fly_free_tier.md)
-    _(it requires swap to be configured to prevent OOM errors and restarts; fails the heavier `posts100k` tests most likely a result of some resources abuse protection)_
+- **Hetzner CX53 (16vCPU x86, 32GB RAM, €20.99)**
+    - [Pure Go results (default)](results/hetzner_cx53.md)
+    - [CGO results](results/hetzner_cx53_cgo.md)
 
 _Keep in mind that the benchmark runs together with the PocketBase instance on a single VPS with shared vCPU so the app performance can be slightly affected by the tests execution itself._
 
@@ -69,8 +65,8 @@ In order to emulate real usage scenarios as close as possible, the tests are gro
 
 - **auth** - Tests various auth related HTTP APIs (auth with password, token refresh, etc.).
 
-- **fetch** - Tests the read HTTP API performance (listing records, generating new tokens, etc.).
-    It also contains scenarios with mixed list and update tests to observe how mixed read/write operations affects each other.
+- **search** - Tests the read HTTP API performance (listing records, generating new tokens, etc.).
+    It also contains scenarios with mixed list and update tests to observe how mixed read/write operations affect each other.
 
 - **custom** - Tests for custom Go and JS code (routes, middlewares, hooks, etc.).
 
@@ -81,14 +77,14 @@ In order to emulate real usage scenarios as close as possible, the tests are gro
 
 To run the benchmarks locally or on your server, you can:
 
-0. _[Install Go 1.23+](https://go.dev/doc/install) (if you haven't already)_
+0. _[Install Go 1.24+](https://go.dev/doc/install) (if you haven't already)_
 1. Clone/download the repo
 2. Run `GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build` (_https://go.dev/doc/install/source#environment_)
-3. Start the created executable by running `./app serve`.
+3. Start the created executable by running `./app serve`
 4. Navigate to `http:localhost:8090/benchmarks`
 
 _By default all tests are executed in the previously mentioned test categories order, but you can also
-specify which exact tests to run using the `/benchmarks?run=custom,delete` query parameter._
+specify which exact tests to run using the `/benchmarks?run=create,custom,delete` query parameter._
 
 The above will start the benchmarks in a new goroutine and once completed it will print its result to the terminal and in the `benchmarks` collection
 (_note that some of the tests are slow and it may take some time to complete; we write the test result as a collection record to workaround various host providers DDoS protections and restrictions like persistent connections limit, read/write timeouts, etc._).

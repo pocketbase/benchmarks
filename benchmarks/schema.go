@@ -183,7 +183,7 @@ const schema = `
     },
     {
         "id": "_pb_users_auth_",
-        "listRule": "",
+        "listRule": "@request.auth.id != ''",
         "viewRule": "",
         "createRule": "",
         "updateRule": "",
@@ -883,7 +883,7 @@ const schema = `
     },
     {
         "id": "mfslsmb563utlfe",
-        "listRule": "",
+        "listRule": "@request.auth.id != ''",
         "viewRule": "",
         "createRule": "",
         "updateRule": "",
@@ -945,7 +945,7 @@ const schema = `
     },
     {
         "id": "mum324voxqe7tp4",
-        "listRule": "",
+        "listRule": "@request.auth.id != ''",
         "viewRule": "",
         "createRule": "",
         "updateRule": "",

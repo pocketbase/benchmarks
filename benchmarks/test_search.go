@@ -29,8 +29,8 @@ func (r *runner) listRecords() error {
 	}
 
 	scenarios := []scenario{
-		{"getOne for auth refresh comparison (high concurrency)", 1000, 1000, colUsers, "/" + user.Id, "", nil, nil},
 		{"getOne for auth refresh comparison (medium concurrency)", 1000, 100, colUsers, "/" + user.Id, "", nil, nil},
+		{"getOne for auth refresh comparison (high concurrency)", 1000, 1000, colUsers, "/" + user.Id, "", nil, nil},
 	}
 
 	collections := []string{

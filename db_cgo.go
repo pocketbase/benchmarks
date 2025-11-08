@@ -23,7 +23,7 @@ func init() {
                     PRAGMA synchronous        = NORMAL;
                     PRAGMA foreign_keys       = ON;
                     PRAGMA temp_store         = MEMORY;
-                    PRAGMA cache_size         = -16000;
+                    PRAGMA cache_size         = -32000;
                 `, nil)
 
 				return err

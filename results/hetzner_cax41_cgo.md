@@ -1,4 +1,4 @@
-_PocketBase v0.24.0-dev_
+_PocketBase v0.24.0-dev (CGO)_
 
 ## Creating organizations (100)
 #### Creating 50 organizations [reqs:50, conc:10, rule:`""`]
