@@ -10,7 +10,7 @@ without extra performance tuning or deployment on expensive server.
 - [About the benchmarks](#about-the-benchmarks)
 
 
-## Results highlight
+## Results
 
 - **Hetzner CAX11 (2vCPU ARM64, 4GB RAM, €4.55)**
     - [Pure Go results (default)](results/hetzner_cax11.md)
