@@ -77,7 +77,7 @@ In order to emulate real usage scenarios as close as possible, the tests are gro
 
 To run the benchmarks locally or on your server, you can:
 
-0. _[Install Go 1.24+](https://go.dev/doc/install) (if you haven't already)_
+0. _[Install Go 1.27+](https://go.dev/doc/install) (if you haven't already)_
 1. Clone/download the repo
 2. Run `GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build` (_https://go.dev/doc/install/source#environment_)
 3. Start the created executable by running `./app serve`

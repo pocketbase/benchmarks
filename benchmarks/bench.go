@@ -16,13 +16,19 @@ type BenchResult struct {
 }
 
 func (r BenchResult) String() string {
-	return fmt.Sprintf(
-		"```\n┌─ Best:      %s\n├─ Worst:     %s\n├─ Completed: %s\n└─ Errors:    %d\n```",
+	txt := fmt.Sprintf(
+		"\n┌─ Best:      %s\n├─ Worst:     %s\n├─ Completed: %s\n└─ Errors:    %d\n",
 		r.Best,
 		r.Worst,
 		r.Completed,
 		len(r.Errors),
 	)
+
+	if len(r.Errors) > 0 {
+		txt += fmt.Sprintf(" └─ sample error: %s'\n", r.Errors[0].Error())
+	}
+
+	return "```" + txt + "```"
 }
 
 // A negative concurrency indicates no limit
