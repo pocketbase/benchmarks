@@ -12,11 +12,11 @@ without extra performance tuning or deployment on expensive server.
 
 ## Results
 
-- **Hetzner CAX11 (2vCPU ARM64, 4GB RAM, €4.55)**
+- **Hetzner CAX11 (2vCPU ARM64, 4GB RAM, €6.49)**
     - [Pure Go results (default)](results/hetzner_cax11.md)
     - [CGO results](results/hetzner_cax11_cgo.md)
 
-- **Hetzner CX53 (16vCPU x86, 32GB RAM, €20.99)**
+- **Hetzner CX53 (16vCPU x86, 32GB RAM, €29.99)**
     - [Pure Go results (default)](results/hetzner_cx53.md)
     - [CGO results](results/hetzner_cx53_cgo.md)
 
